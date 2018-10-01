@@ -18,7 +18,9 @@ import io.swagger.models.Operation;
 import io.swagger.models.Path;
 import io.swagger.models.Response;
 import io.swagger.models.Swagger;
+import io.swagger.models.parameters.HeaderParameter;
 import io.swagger.models.parameters.Parameter;
+import io.swagger.models.parameters.QueryParameter;
 import io.swagger.models.properties.Property;
 
 /**
@@ -87,7 +89,17 @@ public class SpecificationDiff {
 				changedOperation.setSummary(newOperation.getSummary());
 
 				List<Parameter> oldParameters = oldOperation.getParameters();
+				// Exclude Headers
+				excludeParametersOfType(oldParameters, HeaderParameter.class, settings.getExcludedHeaders());
+				// Exclude Query Parameters
+				excludeParametersOfType(oldParameters, QueryParameter.class, settings.getExcludedQueryParameters());
+				
+				
 				List<Parameter> newParameters = newOperation.getParameters();
+				// Exclude Headers
+				excludeParametersOfType(newParameters, HeaderParameter.class, settings.getExcludedHeaders());
+				// Exclude Query Parameters
+				excludeParametersOfType(newParameters, QueryParameter.class, settings.getExcludedQueryParameters());
 				
 				ParameterDiff parameterDiff = ParameterDiff
 						.buildWithDefinition(oldSpec.getDefinitions(), newSpec.getDefinitions())
@@ -136,7 +148,7 @@ public class SpecificationDiff {
 	}
 	
 	private static  <T> void excludePrefix(Map<String, T> map, Set<String> prefixes) {
-		if(map == null || prefixes == null || prefixes.isEmpty())
+		if(map == null || prefixes == null || prefixes.isEmpty() || map.isEmpty())
 			return;
 		
 		Map<String, T> temp = new HashMap<String, T>(map);
@@ -152,6 +164,28 @@ public class SpecificationDiff {
 			}
 			if(!exclude)
 				map.put(key, value);
+		}
+	}
+	
+	private static void excludeParametersOfType(List<Parameter> parameters, Class<? extends Parameter> parameterClass, Set<String> toBeExcluded) {
+		if(parameters == null || toBeExcluded == null || toBeExcluded.isEmpty() || parameters.isEmpty())
+			return;
+		
+		List<Parameter> temp = new ArrayList<Parameter>(parameters);
+		parameters.clear();
+		for(Parameter key : temp) {
+			boolean exclude = false;
+			if(key.getClass() == parameterClass) {
+				for(String prefix : toBeExcluded) {
+					String name = key.getName();
+					if(prefix.equals(name)) {
+						exclude = true;
+						break;
+					}
+				}
+			}
+			if(!exclude)
+				parameters.add(key);
 		}
 	}
 
