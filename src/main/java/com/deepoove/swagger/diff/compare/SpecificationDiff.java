@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.deepoove.swagger.diff.Settings;
 import com.deepoove.swagger.diff.model.ChangedEndpoint;
 import com.deepoove.swagger.diff.model.ChangedOperation;
 import com.deepoove.swagger.diff.model.Endpoint;
@@ -30,11 +31,12 @@ public class SpecificationDiff {
 	private List<Endpoint> newEndpoints;
 	private List<Endpoint> missingEndpoints;
 	private List<ChangedEndpoint> changedEndpoints;
-
+	private Settings settings;
+	
 	private SpecificationDiff() {
 	}
 
-	public static SpecificationDiff diff(Swagger oldSpec, Swagger newSpec) {
+	public static SpecificationDiff diff(Swagger oldSpec, Swagger newSpec, Settings settings) {
 		SpecificationDiff instance = new SpecificationDiff();
 		if (null == oldSpec || null == newSpec) {
 			throw new IllegalArgumentException("cannot diff null spec.");
@@ -73,9 +75,10 @@ public class SpecificationDiff {
 
 				List<Parameter> oldParameters = oldOperation.getParameters();
 				List<Parameter> newParameters = newOperation.getParameters();
+				
 				ParameterDiff parameterDiff = ParameterDiff
 						.buildWithDefinition(oldSpec.getDefinitions(), newSpec.getDefinitions())
-						.diff(oldParameters, newParameters);
+						.diff(oldParameters, newParameters, settings);
 				changedOperation.setAddParameters(parameterDiff.getIncreased());
 				changedOperation.setMissingParameters(parameterDiff.getMissing());
 				changedOperation.setChangedParameter(parameterDiff.getChanged());

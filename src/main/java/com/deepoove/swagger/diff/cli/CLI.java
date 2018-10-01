@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.deepoove.swagger.diff.Settings;
 import com.deepoove.swagger.diff.SwaggerDiff;
 import com.deepoove.swagger.diff.output.HtmlRender;
 import com.deepoove.swagger.diff.output.MarkdownRender;
@@ -30,7 +31,7 @@ public class CLI {
     @Parameter(names = "-new", description = "new api-doc location:Json file path or Http url", required = true, order = 1)
     private String newSpec;
     
-    @Parameter(names = "-v", description = "swagger version:1.0 or 2.0", validateWith=  RegexValidator.class, order = 2)
+    @Parameter(names = "-v", description = "swagger version:1.0 or 2.0", validateWith=  RegexValidator.class, order = 3)
     @Regex("(2\\.0|1\\.0)")
     private String version = SwaggerDiff.SWAGGER_VERSION_V2;
     
@@ -49,14 +50,16 @@ public class CLI {
     
     public static void main(String[] args) {
         CLI cli = new CLI();
+        Settings settings = new Settings();
         JCommander jCommander = JCommander.newBuilder()
             .addObject(cli)
+            .addObject(settings)
             .build();
         jCommander.parse(args);
-        cli.run(jCommander);
+        cli.run(jCommander, settings);
     }
 
-    public void run(JCommander jCommander) {
+    public void run(JCommander jCommander, Settings settings) {
         if (help){
             jCommander.setProgramName("java -jar swagger-diff.jar");
             jCommander.usage();
@@ -68,7 +71,7 @@ public class CLI {
         }
         
         SwaggerDiff diff = SwaggerDiff.SWAGGER_VERSION_V2.equals(version)
-                ? SwaggerDiff.compareV2(oldSpec, newSpec) : SwaggerDiff.compareV1(oldSpec, newSpec);
+                ? SwaggerDiff.compareV2(oldSpec, newSpec, settings) : SwaggerDiff.compareV1(oldSpec, newSpec, settings);
         
         output(diff);
     }

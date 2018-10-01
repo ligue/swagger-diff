@@ -28,6 +28,8 @@ public class SwaggerDiff {
     private List<Endpoint> newEndpoints;
     private List<Endpoint> missingEndpoints;
     private List<ChangedEndpoint> changedEndpoints;
+    
+    private Settings settings;
 
     /**
      * compare two swagger 1.x doc
@@ -36,9 +38,10 @@ public class SwaggerDiff {
      *            old api-doc location:Json or Http
      * @param newSpec
      *            new api-doc location:Json or Http
+     * @param settings TODO
      */
-    public static SwaggerDiff compareV1(String oldSpec, String newSpec) {
-        return compare(oldSpec, newSpec, null, null);
+    public static SwaggerDiff compareV1(String oldSpec, String newSpec, Settings settings) {
+        return compare(oldSpec, newSpec, null, null, settings);
     }
 
     /**
@@ -48,9 +51,10 @@ public class SwaggerDiff {
      *            old api-doc location:Json or Http
      * @param newSpec
      *            new api-doc location:Json or Http
+     * @param settings TODO
      */
-    public static SwaggerDiff compareV2(String oldSpec, String newSpec) {
-        return compare(oldSpec, newSpec, null, SWAGGER_VERSION_V2);
+    public static SwaggerDiff compareV2(String oldSpec, String newSpec, Settings settings) {
+        return compare(oldSpec, newSpec, null, SWAGGER_VERSION_V2, settings);
     }
 
     /**
@@ -60,14 +64,15 @@ public class SwaggerDiff {
      *            old Swagger specification document in v2.0 format as a JsonNode
      * @param newSpec
      *            new Swagger specification document in v2.0 format as a JsonNode
+     * @param settings TODO
      */
-    public static SwaggerDiff compareV2(JsonNode oldSpec, JsonNode newSpec) {
-        return new SwaggerDiff(oldSpec, newSpec).compare();
+    public static SwaggerDiff compareV2(JsonNode oldSpec, JsonNode newSpec, Settings settings) {
+        return new SwaggerDiff(oldSpec, newSpec, settings).compare();
     }
 
     public static SwaggerDiff compare(String oldSpec, String newSpec,
-            List<AuthorizationValue> auths, String version) {
-        return new SwaggerDiff(oldSpec, newSpec, auths, version).compare();
+            List<AuthorizationValue> auths, String version, Settings settings) {
+        return new SwaggerDiff(oldSpec, newSpec, auths, version, settings).compare();
     }
 
     /**
@@ -77,7 +82,7 @@ public class SwaggerDiff {
      * @param version
      */
     private SwaggerDiff(String oldSpec, String newSpec, List<AuthorizationValue> auths,
-            String version) {
+            String version, Settings settings) {
         if (SWAGGER_VERSION_V2.equals(version)) {
             SwaggerParser swaggerParser = new SwaggerParser();
             oldSpecSwagger = swaggerParser.read(oldSpec, auths, true);
@@ -92,20 +97,24 @@ public class SwaggerDiff {
                 return;
             }
         }
+        this.settings = settings != null ? settings : new Settings();
         if (null == oldSpecSwagger || null == newSpecSwagger) { throw new RuntimeException(
                 "cannot read api-doc from spec."); }
     }
 
-    private SwaggerDiff(JsonNode oldSpec, JsonNode newSpec) {
+    private SwaggerDiff(JsonNode oldSpec, JsonNode newSpec, Settings settings) {
         SwaggerParser swaggerParser = new SwaggerParser();
         oldSpecSwagger = swaggerParser.read(oldSpec, true);
         newSpecSwagger = swaggerParser.read(newSpec, true);
-        if (null == oldSpecSwagger || null == newSpecSwagger) { throw new RuntimeException(
-            "cannot read api-doc from spec."); }
+        this.settings = settings != null ? settings : new Settings();
+        if (null == oldSpecSwagger) { throw new RuntimeException(
+            "cannot read old api-doc from spec."); }
+        if (null == newSpecSwagger) { throw new RuntimeException(
+                "cannot read new api-doc from spec."); }
     }
 
     private SwaggerDiff compare() {
-    	SpecificationDiff diff = SpecificationDiff.diff(oldSpecSwagger, newSpecSwagger);
+    	SpecificationDiff diff = SpecificationDiff.diff(oldSpecSwagger, newSpecSwagger, settings);
         this.newEndpoints = diff.getNewEndpoints();
         this.missingEndpoints = diff.getMissingEndpoints();
         this.changedEndpoints = diff.getChangedEndpoints();

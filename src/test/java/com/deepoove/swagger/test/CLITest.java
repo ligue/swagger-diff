@@ -72,7 +72,7 @@ public class CLITest {
         String[] argv = { "--help" };
         JCommander jCommander = JCommander.newBuilder().addObject(cli).build();
         jCommander.parse(argv);
-        cli.run(jCommander);
+        cli.run(jCommander, null);
         Assert.assertTrue(outContent.toString().startsWith("Usage: java -jar swagger-diff.jar "));
     }
     
@@ -82,7 +82,7 @@ public class CLITest {
         String[] argv = { "--version" };
         JCommander jCommander = JCommander.newBuilder().addObject(cli).build();
         jCommander.parse(argv);
-        cli.run(jCommander);
+        cli.run(jCommander, null);
         Assert.assertEquals(outContent.toString().trim(), "1.3.0");
     }
     
@@ -92,7 +92,7 @@ public class CLITest {
         String[] argv = { "-old", "petstore_v2_1.json", "-new", "petstore_v2_2.json" };
         JCommander jCommander = JCommander.newBuilder().addObject(cli).build();
         jCommander.parse(argv);
-        cli.run(jCommander);
+        cli.run(jCommander, null);
         Assert.assertTrue(outContent.toString().startsWith("## Version 1.0.0 to 1.0.2"));
     }
 
