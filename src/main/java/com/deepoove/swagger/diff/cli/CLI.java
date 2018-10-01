@@ -1,5 +1,9 @@
 package com.deepoove.swagger.diff.cli;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.deepoove.swagger.diff.SwaggerDiff;
@@ -34,6 +38,9 @@ public class CLI {
     @Regex("(markdown|html)")
     private String outputMode = OUTPUT_MODE_MARKDOWN;
     
+    @Parameter(names = "-output-file", description = "output file: path of the file to write the reults", order = 4)
+    private String outputFile;
+    
     @Parameter(names = "--help", help = true, order = 5)
     private boolean help;
     
@@ -56,17 +63,48 @@ public class CLI {
             return;
         }
         if (v){
-            JCommander.getConsole().println("1.2.0");
+            JCommander.getConsole().println("1.3.0");
             return;
         }
         
         SwaggerDiff diff = SwaggerDiff.SWAGGER_VERSION_V2.equals(version)
                 ? SwaggerDiff.compareV2(oldSpec, newSpec) : SwaggerDiff.compareV1(oldSpec, newSpec);
         
-        String render = getRender(outputMode).render(diff);
-        JCommander.getConsole().println(render);
+        output(diff);
     }
 
+    private void output(SwaggerDiff diff) {
+    	if(outputFile == null || outputFile.isEmpty()) {
+    		String render = getRender(outputMode).render(diff);
+            JCommander.getConsole().println(render);
+        } else {
+        	outputInFile(diff);
+        }
+    }
+    
+    private void outputInFile(SwaggerDiff diff) {
+    	// Open the file
+    	File file = new File(outputFile);
+    	if(file.isDirectory()) {
+    		JCommander.getConsole().println("Path is an existing directory");
+    		return;
+    	}
+    	FileWriter writer = null;
+    	try {
+			file.createNewFile();
+			writer = new FileWriter(file);
+			getRender(outputMode).render(diff, writer);
+		} catch (IOException e) {
+			JCommander.getConsole().println("Cannot write into file, error: " + e.getMessage());
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) { }
+			}
+		}
+    }
+    
     private Render getRender(String outputMode) {
         if (OUTPUT_MODE_MARKDOWN.equals(outputMode)) return new MarkdownRender();
         return new HtmlRender("Changelog", "http://deepoove.com/swagger-diff/stylesheets/demo.css");

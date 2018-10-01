@@ -7,6 +7,7 @@ import io.swagger.models.parameters.Parameter;
 import io.swagger.models.properties.Property;
 import j2html.tags.ContainerTag;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,6 +30,14 @@ public class HtmlRender implements Render {
 
 
     public String render(SwaggerDiff diff) {
+    	StringBuffer sb = new StringBuffer();
+        try {
+        	render(diff, sb);
+		} catch (IOException e) { }
+        return sb.toString();
+    }
+    
+    public void render(SwaggerDiff diff, Appendable writer) throws IOException {
         List<Endpoint> newEndpoints = diff.getNewEndpoints();
         ContainerTag ol_newEndpoint = ol_newEndpoint(newEndpoints);
 
@@ -40,29 +49,43 @@ public class HtmlRender implements Render {
 
         ContainerTag p_versions = p_versions(diff.getOldVersion(), diff.getNewVersion());
 
-        return renderHtml(ol_newEndpoint, ol_missingEndpoint, ol_changed, p_versions);
+        renderHtml(ol_newEndpoint, ol_missingEndpoint, ol_changed, p_versions, writer);
     }
 
     public String renderHtml(ContainerTag ol_new, ContainerTag ol_miss, ContainerTag ol_changed, ContainerTag p_versions) {
-        ContainerTag html = html().attr("lang", "en").with(
-            head().with(
-                meta().withCharset("utf-8"),
-                title(title),
-                script(rawHtml("function showHide(id){if(document.getElementById(id).style.display==\'none\'){document.getElementById(id).style.display=\'block\';document.getElementById(\'btn_\'+id).innerHTML=\'&uArr;\';}else{document.getElementById(id).style.display=\'none\';document.getElementById(\'btn_\'+id).innerHTML=\'&dArr;\';}return true;}")).withType("text/javascript"),
-                link().withRel("stylesheet").withHref(linkCss)
-            ),
-            body().with(
-                header().with(h1(title)),
-                div().withClass("article").with(
-                    div_headArticle("Versions", "versions", p_versions),
-                    div_headArticle("What's New", "new", ol_new),
-                    div_headArticle("What's Deprecated", "deprecated", ol_miss),
-                    div_headArticle("What's Changed", "changed", ol_changed)
+        StringBuffer sb = new StringBuffer();
+        try {
+			renderHtml(ol_new, ol_miss, ol_changed, p_versions, sb);
+		} catch (IOException e) { }
+        return sb.toString();
+    }
+    
+    public void renderHtml(ContainerTag ol_new, ContainerTag ol_miss, ContainerTag ol_changed, ContainerTag p_versions,
+    		Appendable writer) throws IOException {
+        ContainerTag html = prepareRender(ol_new, ol_miss, ol_changed, p_versions);
+        document().render(writer);
+        html.render(writer);
+    }
+    
+    private ContainerTag prepareRender(ContainerTag ol_new, ContainerTag ol_miss, ContainerTag ol_changed, ContainerTag p_versions) {
+    	ContainerTag html = html().attr("lang", "en").with(
+                head().with(
+                    meta().withCharset("utf-8"),
+                    title(title),
+                    script(rawHtml("function showHide(id){if(document.getElementById(id).style.display==\'none\'){document.getElementById(id).style.display=\'block\';document.getElementById(\'btn_\'+id).innerHTML=\'&uArr;\';}else{document.getElementById(id).style.display=\'none\';document.getElementById(\'btn_\'+id).innerHTML=\'&dArr;\';}return true;}")).withType("text/javascript"),
+                    link().withRel("stylesheet").withHref(linkCss)
+                ),
+                body().with(
+                    header().with(h1(title)),
+                    div().withClass("article").with(
+                        div_headArticle("Versions", "versions", p_versions),
+                        div_headArticle("What's New", "new", ol_new),
+                        div_headArticle("What's Deprecated", "deprecated", ol_miss),
+                        div_headArticle("What's Changed", "changed", ol_changed)
+                    )
                 )
-            )
-        );
-
-        return document().render() + html.render();
+            );
+    	return html;
     }
 
     private ContainerTag div_headArticle(final String title, final String type, final ContainerTag ol) {

@@ -1,5 +1,6 @@
 package com.deepoove.swagger.diff.output;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -14,6 +15,7 @@ import com.deepoove.swagger.diff.model.ElProperty;
 import io.swagger.models.HttpMethod;
 import io.swagger.models.parameters.Parameter;
 import io.swagger.models.properties.Property;
+import j2html.tags.ContainerTag;
 
 public class MarkdownRender implements Render {
 
@@ -26,9 +28,10 @@ public class MarkdownRender implements Render {
 	final String LI = "* ";
 	final String HR = "---\n";
 
-	public MarkdownRender() {}
+	public MarkdownRender() {
+	}
 
-	public String render(SwaggerDiff diff) {
+	public void render(SwaggerDiff diff, Appendable writer) throws IOException {
 		List<Endpoint> newEndpoints = diff.getNewEndpoints();
 		String ol_newEndpoint = ol_newEndpoint(newEndpoints);
 
@@ -38,73 +41,81 @@ public class MarkdownRender implements Render {
 		List<ChangedEndpoint> changedEndpoints = diff.getChangedEndpoints();
 		String ol_changed = ol_changed(changedEndpoints);
 
-		return renderHtml(diff.getOldVersion(), diff.getNewVersion(), ol_newEndpoint, ol_missingEndpoint, ol_changed);
+		renderHtml(diff.getOldVersion(), diff.getNewVersion(), ol_newEndpoint, ol_missingEndpoint, ol_changed, writer);
 	}
 
-	public String renderHtml(String oldVersion, String newVersion, String ol_new, String ol_miss,
-							 String ol_changed) {
+	public String render(SwaggerDiff diff) {
 		StringBuffer sb = new StringBuffer();
-		sb.append(H2).append("Version " + oldVersion + " to " + newVersion).append("\n").append(HR);
-		sb.append(H3).append("What's New").append("\n").append(HR)
-				.append(ol_new).append("\n").append(H3)
-				.append("What's Deprecated").append("\n").append(HR)
-				.append(ol_miss).append("\n").append(H3)
-				.append("What's Changed").append("\n").append(HR)
-				.append(ol_changed);
+		try {
+			render(diff, sb);
+		} catch (IOException e) {
+		}
 		return sb.toString();
 	}
 
+	public String renderHtml(String oldVersion, String newVersion, String ol_new, String ol_miss, String ol_changed) {
+		StringBuffer sb = new StringBuffer();
+		try {
+			renderHtml(oldVersion, newVersion, ol_new, ol_miss, ol_changed, sb);
+		} catch (IOException e) {
+		}
+		return sb.toString();
+	}
+
+	public void renderHtml(String oldVersion, String newVersion, String ol_new, String ol_miss, String ol_changed, Appendable sb)
+			throws IOException {
+		sb.append(H2).append("Version " + oldVersion + " to " + newVersion).append("\n").append(HR);
+		sb.append(H3).append("What's New").append("\n").append(HR).append(ol_new).append("\n").append(H3)
+				.append("What's Deprecated").append("\n").append(HR).append(ol_miss).append("\n").append(H3)
+				.append("What's Changed").append("\n").append(HR).append(ol_changed);
+	}
+
 	private String ol_newEndpoint(List<Endpoint> endpoints) {
-		if (null == endpoints) return "";
+		if (null == endpoints)
+			return "";
 		StringBuffer sb = new StringBuffer();
 		for (Endpoint endpoint : endpoints) {
-			sb.append(li_newEndpoint(endpoint.getMethod().toString(),
-					endpoint.getPathUrl(), endpoint.getSummary()));
+			sb.append(li_newEndpoint(endpoint.getMethod().toString(), endpoint.getPathUrl(), endpoint.getSummary()));
 		}
 		return sb.toString();
 	}
 
 	private String li_newEndpoint(String method, String path, String desc) {
 		StringBuffer sb = new StringBuffer();
-		sb.append(LI).append(CODE).append(method).append(CODE)
-				.append(" " + path).append(" " + desc + "\n");
+		sb.append(LI).append(CODE).append(method).append(CODE).append(" " + path).append(" " + desc + "\n");
 		return sb.toString();
 	}
 
 	private String ol_missingEndpoint(List<Endpoint> endpoints) {
-		if (null == endpoints) return "";
+		if (null == endpoints)
+			return "";
 		StringBuffer sb = new StringBuffer();
 		for (Endpoint endpoint : endpoints) {
-			sb.append(li_newEndpoint(endpoint.getMethod().toString(),
-					endpoint.getPathUrl(), endpoint.getSummary()));
+			sb.append(li_newEndpoint(endpoint.getMethod().toString(), endpoint.getPathUrl(), endpoint.getSummary()));
 		}
 		return sb.toString();
 	}
 
 	private String ol_changed(List<ChangedEndpoint> changedEndpoints) {
-		if (null == changedEndpoints) return "";
+		if (null == changedEndpoints)
+			return "";
 		StringBuffer sb = new StringBuffer();
 		for (ChangedEndpoint changedEndpoint : changedEndpoints) {
 			String pathUrl = changedEndpoint.getPathUrl();
-			Map<HttpMethod, ChangedOperation> changedOperations = changedEndpoint
-					.getChangedOperations();
-			for (Entry<HttpMethod, ChangedOperation> entry : changedOperations
-					.entrySet()) {
+			Map<HttpMethod, ChangedOperation> changedOperations = changedEndpoint.getChangedOperations();
+			for (Entry<HttpMethod, ChangedOperation> entry : changedOperations.entrySet()) {
 				String method = entry.getKey().toString();
 				ChangedOperation changedOperation = entry.getValue();
 				String desc = changedOperation.getSummary();
 
 				StringBuffer ul_detail = new StringBuffer();
 				if (changedOperation.isDiffParam()) {
-					ul_detail.append(PRE_LI).append("Parameter")
-							.append(ul_param(changedOperation));
+					ul_detail.append(PRE_LI).append("Parameter").append(ul_param(changedOperation));
 				}
 				if (changedOperation.isDiffProp()) {
-					ul_detail.append(PRE_LI).append("Return Type")
-							.append(ul_response(changedOperation));
+					ul_detail.append(PRE_LI).append("Return Type").append(ul_response(changedOperation));
 				}
-				sb.append(LI).append(CODE).append(method).append(CODE)
-						.append(" " + pathUrl).append(" " + desc + "  \n")
+				sb.append(LI).append(CODE).append(method).append(CODE).append(" " + pathUrl).append(" " + desc + "  \n")
 						.append(ul_detail);
 			}
 		}
@@ -119,8 +130,7 @@ public class MarkdownRender implements Render {
 			sb.append(PRE_LI).append(PRE_CODE).append(li_addProp(prop) + "\n");
 		}
 		for (ElProperty prop : delProps) {
-			sb.append(PRE_LI).append(PRE_CODE)
-					.append(li_missingProp(prop) + "\n");
+			sb.append(PRE_LI).append(PRE_CODE).append(li_missingProp(prop) + "\n");
 		}
 		return sb.toString();
 	}
@@ -129,8 +139,7 @@ public class MarkdownRender implements Render {
 		Property property = prop.getProperty();
 		StringBuffer sb = new StringBuffer("");
 		sb.append("Delete ").append(prop.getEl())
-				.append(null == property.getDescription() ? ""
-						: (" //" + property.getDescription()));
+				.append(null == property.getDescription() ? "" : (" //" + property.getDescription()));
 		return sb.toString();
 	}
 
@@ -138,44 +147,38 @@ public class MarkdownRender implements Render {
 		Property property = prop.getProperty();
 		StringBuffer sb = new StringBuffer("");
 		sb.append("Add ").append(prop.getEl())
-				.append(null == property.getDescription() ? ""
-						: (" //" + property.getDescription()));
+				.append(null == property.getDescription() ? "" : (" //" + property.getDescription()));
 		return sb.toString();
 	}
 
 	private String ul_param(ChangedOperation changedOperation) {
 		List<Parameter> addParameters = changedOperation.getAddParameters();
 		List<Parameter> delParameters = changedOperation.getMissingParameters();
-		List<ChangedParameter> changedParameters = changedOperation
-				.getChangedParameter();
+		List<ChangedParameter> changedParameters = changedOperation.getChangedParameter();
 		StringBuffer sb = new StringBuffer("\n\n");
 		for (Parameter param : addParameters) {
-			sb.append(PRE_LI).append(PRE_CODE)
-					.append(li_addParam(param) + "\n");
+			sb.append(PRE_LI).append(PRE_CODE).append(li_addParam(param) + "\n");
 		}
 		for (ChangedParameter param : changedParameters) {
 			List<ElProperty> increased = param.getIncreased();
 			for (ElProperty prop : increased) {
-				sb.append(PRE_LI).append(PRE_CODE)
-						.append(li_addProp(prop) + "\n");
+				sb.append(PRE_LI).append(PRE_CODE).append(li_addProp(prop) + "\n");
 			}
 		}
 		for (ChangedParameter param : changedParameters) {
 			boolean changeRequired = param.isChangeRequired();
 			boolean changeDescription = param.isChangeDescription();
-			if (changeRequired || changeDescription) sb.append(PRE_LI)
-					.append(PRE_CODE).append(li_changedParam(param) + "\n");
+			if (changeRequired || changeDescription)
+				sb.append(PRE_LI).append(PRE_CODE).append(li_changedParam(param) + "\n");
 		}
 		for (ChangedParameter param : changedParameters) {
 			List<ElProperty> missing = param.getMissing();
 			for (ElProperty prop : missing) {
-				sb.append(PRE_LI).append(PRE_CODE)
-						.append(li_missingProp(prop) + "\n");
+				sb.append(PRE_LI).append(PRE_CODE).append(li_missingProp(prop) + "\n");
 			}
 		}
 		for (Parameter param : delParameters) {
-			sb.append(PRE_LI).append(PRE_CODE)
-					.append(li_missingParam(param) + "\n");
+			sb.append(PRE_LI).append(PRE_CODE).append(li_missingParam(param) + "\n");
 		}
 		return sb.toString();
 	}
@@ -183,16 +186,14 @@ public class MarkdownRender implements Render {
 	private String li_addParam(Parameter param) {
 		StringBuffer sb = new StringBuffer("");
 		sb.append("Add ").append(param.getName())
-				.append(null == param.getDescription() ? ""
-						: (" //" + param.getDescription()));
+				.append(null == param.getDescription() ? "" : (" //" + param.getDescription()));
 		return sb.toString();
 	}
 
 	private String li_missingParam(Parameter param) {
 		StringBuffer sb = new StringBuffer("");
 		sb.append("Delete ").append(param.getName())
-				.append(null == param.getDescription() ? ""
-						: (" //" + param.getDescription()));
+				.append(null == param.getDescription() ? "" : (" //" + param.getDescription()));
 		return sb.toString();
 	}
 
