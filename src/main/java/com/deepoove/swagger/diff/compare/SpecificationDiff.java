@@ -31,7 +31,6 @@ public class SpecificationDiff {
 	private List<Endpoint> newEndpoints;
 	private List<Endpoint> missingEndpoints;
 	private List<ChangedEndpoint> changedEndpoints;
-	private Settings settings;
 	
 	private SpecificationDiff() {
 	}
@@ -41,6 +40,15 @@ public class SpecificationDiff {
 		if (null == oldSpec || null == newSpec) {
 			throw new IllegalArgumentException("cannot diff null spec.");
 		}
+		String basePath = settings.getOldPrefix();
+		if(basePath != null) {
+			addUrlPrefix(oldSpec.getPaths(), basePath);	
+		}
+		basePath = settings.getNewPrefix();
+		if(basePath != null) {
+			addUrlPrefix(newSpec.getPaths(), basePath);	
+		}
+		
 		Map<String, Path> oldPaths = oldSpec.getPaths();
 		Map<String, Path> newPaths = newSpec.getPaths();
 		MapKeyDiff<String, Path> pathDiff = MapKeyDiff.diff(oldPaths, newPaths);
@@ -109,6 +117,17 @@ public class SpecificationDiff {
 
 		return instance;
 
+	}
+
+	private static  <T> void addUrlPrefix(Map<String, T> map, String basePath) {
+		if(map == null)
+			return;
+		Map<String, T> temp = new HashMap<String, T>(map);
+		map.clear();
+		for(String key : temp.keySet()) {
+			T value = temp.get(key);
+			map.put(basePath + key, value);
+		}
 	}
 
 	private static Property getResponseProperty(Operation operation) {
