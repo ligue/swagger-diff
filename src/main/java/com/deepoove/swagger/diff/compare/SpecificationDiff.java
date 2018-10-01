@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.deepoove.swagger.diff.Settings;
 import com.deepoove.swagger.diff.model.ChangedEndpoint;
@@ -50,7 +51,11 @@ public class SpecificationDiff {
 		}
 		
 		Map<String, Path> oldPaths = oldSpec.getPaths();
+		excludePrefix(oldPaths, settings.getExcludedPathPrefixes());
+		
 		Map<String, Path> newPaths = newSpec.getPaths();
+		excludePrefix(newPaths, settings.getExcludedPathPrefixes());
+		
 		MapKeyDiff<String, Path> pathDiff = MapKeyDiff.diff(oldPaths, newPaths);
 		instance.newEndpoints = convert2EndpointList(pathDiff.getIncreased());
 		instance.missingEndpoints = convert2EndpointList(pathDiff.getMissing());
@@ -127,6 +132,26 @@ public class SpecificationDiff {
 		for(String key : temp.keySet()) {
 			T value = temp.get(key);
 			map.put(basePath + key, value);
+		}
+	}
+	
+	private static  <T> void excludePrefix(Map<String, T> map, Set<String> prefixes) {
+		if(map == null || prefixes == null || prefixes.isEmpty())
+			return;
+		
+		Map<String, T> temp = new HashMap<String, T>(map);
+		map.clear();
+		for(String key : temp.keySet()) {
+			T value = temp.get(key);
+			boolean exclude = false;
+			for(String prefix : prefixes) {
+				if(key.startsWith(prefix)) {
+					exclude = true;
+					break;
+				}
+			}
+			if(!exclude)
+				map.put(key, value);
 		}
 	}
 
