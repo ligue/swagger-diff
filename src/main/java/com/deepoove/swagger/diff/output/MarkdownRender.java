@@ -2,7 +2,6 @@ package com.deepoove.swagger.diff.output;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,9 +15,7 @@ import com.deepoove.swagger.diff.model.ElProperty;
 
 import io.swagger.models.HttpMethod;
 import io.swagger.models.parameters.Parameter;
-import io.swagger.models.parameters.QueryParameter;
 import io.swagger.models.properties.Property;
-import j2html.tags.ContainerTag;
 
 public class MarkdownRender implements Render {
 
