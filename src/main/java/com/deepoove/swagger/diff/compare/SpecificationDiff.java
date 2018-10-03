@@ -70,7 +70,7 @@ public class SpecificationDiff {
 			changedEndpoint.setPathUrl(pathUrl);
 			Path oldPath = oldPaths.get(pathUrl);
 			Path newPath = newPaths.get(pathUrl);
-
+			
 			Map<HttpMethod, Operation> oldOperationMap = oldPath.getOperationMap();
 			Map<HttpMethod, Operation> newOperationMap = newPath.getOperationMap();
 			MapKeyDiff<HttpMethod, Operation> operationDiff = MapKeyDiff.diff(oldOperationMap, newOperationMap);
@@ -78,7 +78,7 @@ public class SpecificationDiff {
 			Map<HttpMethod, Operation> missingOperation = operationDiff.getMissing();
 			changedEndpoint.setNewOperations(increasedOperation);
 			changedEndpoint.setMissingOperations(missingOperation);
-
+			
 			List<HttpMethod> sharedMethods = operationDiff.getSharedKey();
 			Map<HttpMethod, ChangedOperation> operas = new HashMap<HttpMethod, ChangedOperation>();
 			ChangedOperation changedOperation = null;
@@ -87,13 +87,14 @@ public class SpecificationDiff {
 				Operation oldOperation = oldOperationMap.get(method);
 				Operation newOperation = newOperationMap.get(method);
 				changedOperation.setSummary(newOperation.getSummary());
-
+				changedOperation.setOldOperation(oldOperation);
+				changedOperation.setNewOperation(newOperation);
+				
 				List<Parameter> oldParameters = oldOperation.getParameters();
 				// Exclude Headers
 				excludeParametersOfType(oldParameters, HeaderParameter.class, settings.getExcludedHeaders());
 				// Exclude Query Parameters
 				excludeParametersOfType(oldParameters, QueryParameter.class, settings.getExcludedQueryParameters());
-				
 				
 				List<Parameter> newParameters = newOperation.getParameters();
 				// Exclude Headers
@@ -107,7 +108,7 @@ public class SpecificationDiff {
 				changedOperation.setAddParameters(parameterDiff.getIncreased());
 				changedOperation.setMissingParameters(parameterDiff.getMissing());
 				changedOperation.setChangedParameter(parameterDiff.getChanged());
-
+				
 				Property oldResponseProperty = getResponseProperty(oldOperation);
 				Property newResponseProperty = getResponseProperty(newOperation);
 				PropertyDiff propertyDiff = PropertyDiff.buildWithDefinition(oldSpec.getDefinitions(),
@@ -116,7 +117,7 @@ public class SpecificationDiff {
 				changedOperation.setAddProps(propertyDiff.getIncreased());
 				changedOperation.setMissingProps(propertyDiff.getMissing());
 
-				if (changedOperation.isDiff()) {
+				if (changedOperation.isDiff() || changedOperation.isDiffDeprecated()) {
 					operas.put(method, changedOperation);
 				}
 			}
@@ -133,9 +134,8 @@ public class SpecificationDiff {
 		}
 
 		return instance;
-
 	}
-
+	
 	private static  <T> void addUrlPrefix(Map<String, T> map, String basePath) {
 		if(map == null)
 			return;

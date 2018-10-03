@@ -4,7 +4,7 @@ import io.swagger.models.HttpMethod;
 import io.swagger.models.Operation;
 import io.swagger.models.Path;
 
-public class Endpoint {
+public class Endpoint implements Comparable<Endpoint> {
 
 	private String pathUrl;
 	private HttpMethod method;
@@ -34,7 +34,10 @@ public class Endpoint {
 	}
 
 	public void setSummary(String summary) {
-		this.summary = summary;
+		if(summary == null)
+			this.summary = "";
+		else
+			this.summary = summary;
 	}
 
 	public Path getPath() {
@@ -53,4 +56,21 @@ public class Endpoint {
 		this.operation = operation;
 	}
 
+	public boolean isDeprecated() {
+		Boolean newDep = operation.isDeprecated();
+		return (newDep != null && newDep);
+	}
+
+	@Override
+	public int compareTo(Endpoint o) {
+		if(o == null)
+			return 1;
+		
+		if(this.pathUrl == null) 
+			return -1;
+		
+		String otherUrl = o.pathUrl;
+		
+		return this.pathUrl.compareTo(otherUrl);
+	}
 }

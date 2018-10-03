@@ -3,6 +3,7 @@ package com.deepoove.swagger.diff.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.swagger.models.Operation;
 import io.swagger.models.parameters.Parameter;
 
 public class ChangedOperation implements Changed {
@@ -17,6 +18,9 @@ public class ChangedOperation implements Changed {
 	private List<ElProperty> addProps = new ArrayList<ElProperty>();
 	private List<ElProperty> missingProps = new ArrayList<ElProperty>();
 
+	private Operation oldOperation;
+	private Operation newOperation;
+	
 	public List<Parameter> getAddParameters() {
 		return addParameters;
 	}
@@ -62,7 +66,26 @@ public class ChangedOperation implements Changed {
 	}
 
 	public void setSummary(String summary) {
-		this.summary = summary;
+		if(summary == null)
+			this.summary = "";
+		else
+			this.summary = summary;
+	}
+
+	public Operation getOldOperation() {
+		return oldOperation;
+	}
+
+	public void setOldOperation(Operation oldOperation) {
+		this.oldOperation = oldOperation;
+	}
+
+	public Operation getNewOperation() {
+		return newOperation;
+	}
+
+	public void setNewOperation(Operation newOperation) {
+		this.newOperation = newOperation;
 	}
 
 	public boolean isDiff() {
@@ -70,6 +93,7 @@ public class ChangedOperation implements Changed {
 				|| !changedParameter.isEmpty() || !addProps.isEmpty()
 				|| !missingProps.isEmpty();
 	}
+	
 	public boolean isDiffProp(){
 		return !addProps.isEmpty()
 				|| !missingProps.isEmpty();
@@ -79,4 +103,19 @@ public class ChangedOperation implements Changed {
 				|| !changedParameter.isEmpty();
 	}
 
+	/**
+	 * True if the old one was not deprecated, but the new one was marked as deprecated
+	 * @return
+	 */
+	public boolean isDiffDeprecated() {
+		Boolean oldDep = oldOperation.isDeprecated();
+		Boolean newDep = newOperation.isDeprecated();
+		
+		return !(oldDep != null && oldDep) && (newDep != null && newDep);
+	}
+	
+	public boolean isDepreacted() {
+		Boolean newDep = newOperation.isDeprecated();
+		return (newDep != null && newDep);
+	}
 }

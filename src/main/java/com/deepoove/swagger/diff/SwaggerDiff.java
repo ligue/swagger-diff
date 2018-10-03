@@ -1,16 +1,21 @@
 package com.deepoove.swagger.diff;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.deepoove.swagger.diff.compare.SpecificationDiff;
 import com.deepoove.swagger.diff.model.ChangedEndpoint;
+import com.deepoove.swagger.diff.model.ChangedOperation;
 import com.deepoove.swagger.diff.model.Endpoint;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.models.HttpMethod;
 import io.swagger.models.Swagger;
 import io.swagger.models.auth.AuthorizationValue;
 import io.swagger.parser.SwaggerCompatConverter;
@@ -133,6 +138,30 @@ public class SwaggerDiff {
         return changedEndpoints;
     }
 
+    /**
+     * @return the endpoints which are not deprecated in the old but where marked deprecated in new, and has no other changes.
+     */
+    public List<Endpoint> GetDeprecatedEndpoints() {
+    	List<Endpoint> endpoints = new ArrayList<Endpoint>();
+    	for(ChangedEndpoint endpoint : changedEndpoints) {
+    		Map<HttpMethod, ChangedOperation> ops = endpoint.getChangedOperations();
+    		if(ops == null || ops.isEmpty())
+    			continue;
+    		for(HttpMethod method : ops.keySet()) {
+    			ChangedOperation op = ops.get(method);
+    			if(!op.isDiff() && op.isDiffDeprecated()) {
+    				Endpoint ep = new Endpoint();
+    				ep.setMethod(method);
+    				ep.setOperation(op.getNewOperation());
+    				ep.setPathUrl(endpoint.getPathUrl());
+    				ep.setSummary(op.getSummary());
+    				endpoints.add(ep);
+    			}
+    		}
+    	}
+    	return endpoints;
+    }
+    
     public String getOldVersion() {
         return oldSpecSwagger.getInfo().getVersion();
     }

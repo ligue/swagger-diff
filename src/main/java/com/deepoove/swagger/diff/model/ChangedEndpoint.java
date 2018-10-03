@@ -5,7 +5,7 @@ import java.util.Map;
 import io.swagger.models.HttpMethod;
 import io.swagger.models.Operation;
 
-public class ChangedEndpoint implements Changed{
+public class ChangedEndpoint implements Changed, Comparable<ChangedEndpoint>{
 
 	private String pathUrl;
 
@@ -56,4 +56,13 @@ public class ChangedEndpoint implements Changed{
 		return !changedOperations.isEmpty();
 	}
 
+	@Override
+	public int compareTo(ChangedEndpoint o) {
+		if(o == null)
+			return 1;
+		if(this.pathUrl == null)
+			return -1;
+		
+		return this.pathUrl.compareTo(o.pathUrl);
+	}
 }
