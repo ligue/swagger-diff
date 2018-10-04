@@ -18,6 +18,9 @@ public class HtmlRender implements Render {
 
     private String title;
     private String linkCss;
+    private static final String REMOVED_ID = "removed";
+    private static final String NEW_ID = "new";
+    private static final String DEPRECATED_ID = "deprecated";
 
     public HtmlRender() {
         this("Api Change Log", "http://deepoove.com/swagger-diff/stylesheets/demo.css");
@@ -79,9 +82,9 @@ public class HtmlRender implements Render {
                     header().with(h1(title)),
                     div().withClass("article").with(
                         div_headArticle("Versions", "versions", p_versions),
-                        div_headArticle("What's New", "new", ol_new),
-                        div_headArticle("What's Deprecated", "deprecated", ol_miss),
-                        div_headArticle("What's Changed", "changed", ol_changed)
+                        div_headArticle("New Endpoints", NEW_ID, ol_new),
+                        div_headArticle("Removed Endpoints", REMOVED_ID, ol_miss),
+                        div_headArticle("Changed Endpoints", "changed", ol_changed)
                     )
                 )
             );
@@ -99,35 +102,37 @@ public class HtmlRender implements Render {
     }
 
     private ContainerTag ol_newEndpoint(List<Endpoint> endpoints) {
-        if (null == endpoints) return ol().withId("new");
-        ContainerTag ol = ol().withId("new");
+        if (null == endpoints) return ol().withId(NEW_ID);
+        ContainerTag ol = ol().withId(NEW_ID);
         for (Endpoint endpoint : endpoints) {
-            ol.with(li_newEndpoint(endpoint.getMethod().toString(),
-                endpoint.getPathUrl(), endpoint.getSummary()));
+            ol.with(li_newEndpoint(endpoint));
         }
         return ol;
     }
 
-    private ContainerTag li_newEndpoint(String method, String path,
-                                        String desc) {
-        return li().with(span(method).withClass(method)).withText(path + " ")
-            .with(span(null == desc ? "" : desc));
+    private ContainerTag li_newEndpoint(Endpoint endpoint) {
+    	String method = endpoint.getMethod().toString();
+    	String path = endpoint.getPathUrl();
+        String desc = endpoint.getSummary();
+        ContainerTag ct = li().with(span(method).withClass(method));
+        if(endpoint.isDeprecated())
+        	ct.with(del(path + " "));
+        else
+        	ct.withText(path + " ");
+        return ct.with(span(null == desc ? "" : desc));
     }
 
     private ContainerTag ol_missingEndpoint(List<Endpoint> endpoints) {
-        if (null == endpoints) return ol().withId("deprecated");
-        ContainerTag ol = ol().withId("deprecated");
+        if (null == endpoints) return ol().withId(REMOVED_ID);
+        ContainerTag ol = ol().withId(REMOVED_ID);
         for (Endpoint endpoint : endpoints) {
-            ol.with(li_missingEndpoint(endpoint.getMethod().toString(),
-                endpoint.getPathUrl(), endpoint.getSummary()));
+            ol.with(li_missingEndpoint(endpoint));
         }
         return ol;
     }
 
-    private ContainerTag li_missingEndpoint(String method, String path,
-                                            String desc) {
-        return li().with(span(method).withClass(method),
-            del().withText(path)).with(span(null == desc ? "" : " " + desc));
+    private ContainerTag li_missingEndpoint(Endpoint endpoint) {
+        return li_newEndpoint(endpoint);
     }
 
     private ContainerTag ol_changed(List<ChangedEndpoint> changedEndpoints) {
