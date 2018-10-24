@@ -117,12 +117,20 @@ public class MarkdownRender implements Render {
 		return sb.toString();
 	}
 
+	private String li_newEndpoint(String method, String path, String desc) {
+		StringBuffer sb = new StringBuffer();
+		sb.append(LI).append(CODE).append(method).append(CODE)
+				.append(" " + path).append(" " + desc + "\n");
+		return sb.toString();
+	}
+
 	private String ol_missingEndpoint(List<Endpoint> endpoints) {
 		if (null == endpoints || endpoints.isEmpty())
 			return "";
 		StringBuffer sb = new StringBuffer();
 		for (Endpoint endpoint : endpoints) {
-			sb.append(li_newEndpoint(endpoint));
+			sb.append(li_newEndpoint(endpoint.getMethod().toString(),
+					endpoint.getPathUrl(), endpoint.getSummary()));
 		}
 		return sb.toString();
 	}
@@ -133,21 +141,25 @@ public class MarkdownRender implements Render {
 		StringBuffer sb = new StringBuffer();
 		for (ChangedEndpoint changedEndpoint : changedEndpoints) {
 			String pathUrl = changedEndpoint.getPathUrl();
-			Map<HttpMethod, ChangedOperation> changedOperations = changedEndpoint.getChangedOperations();
-			for (Entry<HttpMethod, ChangedOperation> entry : changedOperations.entrySet()) {
+			Map<HttpMethod, ChangedOperation> changedOperations = changedEndpoint
+					.getChangedOperations();
+			for (Entry<HttpMethod, ChangedOperation> entry : changedOperations
+					.entrySet()) {
+				String method = entry.getKey().toString();
 				ChangedOperation changedOperation = entry.getValue();
 				if(!changedOperation.isDiff())
 					continue; // At this point the operation must be just deprecated
 				
-				String method = entry.getKey().toString();
 				String desc = removeLines(changedOperation.getSummary());
 				
 				StringBuffer ul_detail = new StringBuffer();
 				if (changedOperation.isDiffParam()) {
-					ul_detail.append(PRE_LI).append("Parameter").append(ul_param(changedOperation));
+					ul_detail.append(PRE_LI).append("Parameters")
+							.append(ul_param(changedOperation));
 				}
 				if (changedOperation.isDiffProp()) {
-					ul_detail.append(PRE_LI).append("Return Type").append(ul_response(changedOperation));
+					ul_detail.append(PRE_LI).append("Return Type")
+							.append(ul_response(changedOperation));
 				}
 				sb.append(LI).append(CODE).append(method).append(CODE).append(" ");
 				
@@ -166,12 +178,18 @@ public class MarkdownRender implements Render {
 	private String ul_response(ChangedOperation changedOperation) {
 		List<ElProperty> addProps = changedOperation.getAddProps();
 		List<ElProperty> delProps = changedOperation.getMissingProps();
+		List<ElProperty> changedProps = changedOperation.getChangedProps();
 		StringBuffer sb = new StringBuffer("\n\n");
+
+		String prefix = PRE_LI + PRE_CODE;
 		for (ElProperty prop : addProps) {
 			sb.append(PRE_LI).append(PRE_CODE).append(li_addProp(prop) + "\n");
 		}
 		for (ElProperty prop : delProps) {
-			sb.append(PRE_LI).append(PRE_CODE).append(li_missingProp(prop) + "\n");
+			sb.append(prefix).append(li_missingProp(prop) + "\n");
+		}
+		for (ElProperty prop : changedProps) {
+			sb.append(prefix).append(li_changedProp(prop) + "\n");
 		}
 		return sb.toString();
 	}
@@ -187,8 +205,21 @@ public class MarkdownRender implements Render {
 	private String li_addProp(ElProperty prop) {
 		Property property = prop.getProperty();
 		StringBuffer sb = new StringBuffer("");
-		sb.append("Add ").append(prop.getEl())
-				.append(removeLines(null == property.getDescription() ? "" : (" //" + property.getDescription())));
+		sb.append("Insert ").append(prop.getEl())
+				.append(null == property.getDescription() ? ""
+						: (" //" + property.getDescription()));
+		return sb.toString();
+	}
+
+	private String li_changedProp(ElProperty prop) {
+		Property property = prop.getProperty();
+		String prefix = "Modify ";
+		String desc = " //" + property.getDescription();
+		String postfix = (null == property.getDescription() ? "" : desc);
+
+		StringBuffer sb = new StringBuffer("");
+		sb.append(prefix).append(prop.getEl())
+				.append(postfix);
 		return sb.toString();
 	}
 
@@ -215,8 +246,13 @@ public class MarkdownRender implements Render {
 		}
 		for (ChangedParameter param : changedParameters) {
 			List<ElProperty> missing = param.getMissing();
+			List<ElProperty> changed = param.getChanged();
 			for (ElProperty prop : missing) {
 				sb.append(PRE_LI).append(PRE_CODE).append(li_missingProp(prop) + "\n");
+			}
+			for (ElProperty prop : changed) {
+				sb.append(PRE_LI).append(PRE_CODE)
+						.append(li_changedProp(prop) + "\n");
 			}
 		}
 		for (Parameter param : delParameters) {

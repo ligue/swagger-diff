@@ -82,6 +82,7 @@ public class ParameterDiff {
 								rightModel, name);
 						changedParameter.setIncreased(diff.getIncreased());
 						changedParameter.setMissing(diff.getMissing());
+						changedParameter.setChanged(diff.getChanged());
 					}
 				}
 
