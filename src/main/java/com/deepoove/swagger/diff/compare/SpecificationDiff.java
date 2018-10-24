@@ -116,6 +116,7 @@ public class SpecificationDiff {
 				propertyDiff.diff(oldResponseProperty, newResponseProperty);
 				changedOperation.setAddProps(propertyDiff.getIncreased());
 				changedOperation.setMissingProps(propertyDiff.getMissing());
+				changedOperation.setChangedProps(propertyDiff.getChanged());
 
 				if (changedOperation.isDiff() || changedOperation.isDiffDeprecated()) {
 					operas.put(method, changedOperation);
